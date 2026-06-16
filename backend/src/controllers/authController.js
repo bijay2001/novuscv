@@ -13,11 +13,12 @@ const sendTokenResponse = (user, statusCode, res, rememberMe) => {
     { expiresIn: expireTime }
   );
 
+  // --- UPDATED FOR PRODUCTION CROSS-DOMAIN AUTH ---
   const options = {
     expires: new Date(Date.now() + cookieMaxAge),
     httpOnly: true, 
-    secure: process.env.NODE_ENV === 'production', 
-    sameSite: 'strict' 
+    secure: true,     // MUST be true for sameSite: 'none' to work in production
+    sameSite: 'none'  // Allows your Vercel frontend to receive this cookie from Render
   };
 
   res.status(statusCode).cookie('token', token, options).json({
@@ -101,10 +102,13 @@ export const getMe = async (req, res) => {
   }
 };
 
+// --- UPDATED FOR LOGOUT CLEARANCE ---
 export const logout = (req, res) => {
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
-    httpOnly: true
+    httpOnly: true,
+    secure: true,     // Match login cookie attributes
+    sameSite: 'none'  // Match login cookie attributes
   });
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
