@@ -1,0 +1,13 @@
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  /* Removed max-width and text-align: center */
+}
+
+/* Optional: Add a smooth default font if you haven't already */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f4f7f6; /* Premium soft background */
+}
