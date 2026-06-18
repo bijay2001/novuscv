@@ -112,14 +112,14 @@ const Login = () => {
       <div className="row g-0 w-100 h-100">
         
         {/* --- PANEL 1: AI SCANNER ANIMATION (Hidden on Mobile) --- */}
-        <div className="col-lg-5 bg-ink-navy d-none d-lg-flex flex-column justify-content-center align-items-center p-5 text-white border-end border-dark">
+        <div className="col-lg-5 bg-ink-navy d-none d-lg-flex flex-column justify-content-center align-items-center p-3 text-white border-end border-dark">
           
           <div className="w-100 d-flex justify-content-center position-relative">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="card bg-dark bg-opacity-25 border border-secondary border-opacity-25 rounded-4 p-4 shadow-lg position-relative overflow-hidden w-100" 
+              className="card bg-dark bg-opacity-25 border border-secondary border-opacity-25 rounded-4 p-3 shadow-lg position-relative overflow-hidden w-100" 
               style={{ maxWidth: '400px' }}
             >
               <div className="scan-line"></div>
@@ -145,14 +145,10 @@ const Login = () => {
               </div>
             </motion.div>
           </div>
-
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="small text-secondary font-mono-head mt-5 text-center">
-            // SECURE CONNECTION ESTABLISHED
-          </motion.div>
         </div>
 
         {/* --- PANEL 2: INTERACTIVE FORM --- */}
-        <div className="col-12 col-lg-7 d-flex flex-column justify-content-center align-items-center p-4 p-md-5">
+        <div className="col-12 col-lg-7 d-flex flex-column justify-content-center align-items-center p-3 p-md-5">
           
           <motion.div 
             className="w-100 premium-card p-4 p-sm-5 my-auto" 

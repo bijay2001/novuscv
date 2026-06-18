@@ -4,7 +4,21 @@ import db from '../config/db.js';
 import { extractTextFromFile } from '../utils/resumeParser.js';
 import { analyzeResumeWithAI } from '../utils/aiAnalyzer.js';
 
+// Non-blocking file deletion helper
+const deleteFile = async (filePath) => {
+  try {
+    if (filePath) {
+      await fs.promises.access(filePath); // Check if exists
+      await fs.promises.unlink(filePath); // Delete asynchronously
+    }
+  } catch (err) {
+    // File already gone or inaccessible, safe to ignore
+  }
+};
+
 export const uploadAndParseResume = async (req, res) => {
+  let uploadedFilePath = req.file?.path;
+
   try {
     // 1. Initial File Existence Check
     if (!req.file) {
@@ -12,10 +26,8 @@ export const uploadAndParseResume = async (req, res) => {
     }
 
     const userId = req.user.id; 
-    const filePath = req.file.path;
     const originalName = req.file.originalname;
     
-    // Inputs from frontend
     const jobRole = req.body.jobRole || 'General Application'; 
     const jobDescriptionId = req.body.jobDescriptionId || null;
 
@@ -25,24 +37,23 @@ export const uploadAndParseResume = async (req, res) => {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
     if (!allowedMimeTypes.includes(req.file.mimetype)) {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      await deleteFile(uploadedFilePath);
       return res.status(400).json({ success: false, message: 'Invalid format. Only PDF and DOCX files are allowed.' });
     }
 
     if (req.file.size > 5 * 1024 * 1024) { // 5MB limit
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      return res.status(400).json({ success: false, message: 'File is too large.' });
+      await deleteFile(uploadedFilePath);
+      return res.status(400).json({ success: false, message: 'File is too large. Maximum size is 5MB.' });
     }
 
     // 3. Extract text
-    const fullResumeText = await extractTextFromFile(filePath);
+    const fullResumeText = await extractTextFromFile(uploadedFilePath);
     if (!fullResumeText || fullResumeText.trim().length < 50) {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath); 
-      return res.status(400).json({ success: false, message: 'Could not read text from this document.' });
+      await deleteFile(uploadedFilePath);
+      return res.status(400).json({ success: false, message: 'Could not read text from this document. Please ensure it is not an image-based PDF.' });
     }
 
     // 4. Job Description Lookup Logic
-    // If jobDescriptionId exists, fetch it from DB, otherwise use manual jobRole
     let activeJD = jobRole; 
 
     if (jobDescriptionId) {
@@ -51,14 +62,14 @@ export const uploadAndParseResume = async (req, res) => {
         [jobDescriptionId, userId]
       );
       if (jobRows.length > 0) {
-        activeJD = jobRows[0].description; // AI will analyze against this full description
+        activeJD = jobRows[0].description; 
       }
     }
 
     // 5. Length & Heuristic Protection
     if (fullResumeText.length > 15000) {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath); 
-      return res.status(400).json({ success: false, message: 'Document is too long.' });
+      await deleteFile(uploadedFilePath);
+      return res.status(400).json({ success: false, message: 'Document contains too much text. Please upload a standard resume.' });
     }
 
     const limitedText = fullResumeText.substring(0, 12000);
@@ -73,7 +84,7 @@ export const uploadAndParseResume = async (req, res) => {
     );
 
     if (existingScan.length > 0) {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      await deleteFile(uploadedFilePath);
       return res.status(200).json({
         success: true,
         message: 'Analysis instantly retrieved from cache',
@@ -122,7 +133,7 @@ export const uploadAndParseResume = async (req, res) => {
     );
 
     // Final cleanup
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath); 
+    await deleteFile(uploadedFilePath);
 
     res.status(201).json({
       success: true,
@@ -132,8 +143,8 @@ export const uploadAndParseResume = async (req, res) => {
 
   } catch (error) {
     console.error("Upload Error:", error);
-    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    res.status(500).json({ success: false, message: 'Server error during processing' });
+    await deleteFile(uploadedFilePath);
+    res.status(500).json({ success: false, message: 'Server error during document processing.' });
   }
 };
 
