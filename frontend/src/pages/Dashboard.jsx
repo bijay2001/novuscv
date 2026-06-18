@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { useNavigate, Link } from 'react-router-dom';
-import { showAlert } from '../utils/alerts';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import Logo from '../components/Logo'; // IMPORT YOUR NEW LOGO HERE
 
 // --- Animated Counter Component ---
 const AnimatedNumber = ({ value }) => {
@@ -13,12 +11,20 @@ const AnimatedNumber = ({ value }) => {
   useEffect(() => {
     let start = 0;
     const duration = 1500;
-    const increment = value / (duration / 16);
+    // Ensure value is a number to prevent NaN errors
+    const numValue = Number(value) || 0; 
+    
+    if (numValue === 0) {
+      setDisplayValue(0);
+      return;
+    }
+
+    const increment = numValue / (duration / 16);
 
     const timer = setInterval(() => {
       start += increment;
-      if (start >= value) {
-        setDisplayValue(value);
+      if (start >= numValue) {
+        setDisplayValue(numValue);
         clearInterval(timer);
       } else {
         setDisplayValue(Math.floor(start));
@@ -32,37 +38,44 @@ const AnimatedNumber = ({ value }) => {
 };
 
 const Dashboard = () => {
-  const { user, logoutUser } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  // Real State for Database Data
+  const [stats, setStats] = useState({ avgScore: 0, totalScans: 0 });
+  const [recentScans, setRecentScans] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock Data (Replace with API fetch later)
-  const stats = { avgScore: 85, totalScans: 12 };
-  const recentScans = [
-    { id: 1, fileName: 'Frontend_Dev_Final.pdf', scannedAt: 'Just now', score: 92 },
-    { id: 2, fileName: 'Software_Engineer_v2.docx', scannedAt: '2 days ago', score: 64 },
-  ];
-
-  const handleLogout = async () => {
-    const result = await showAlert.confirm('Log Out', 'Are you sure you want to end your session?');
-    if (result.isConfirmed) {
+  // Fetch Data on Component Mount
+  useEffect(() => {
+    const fetchDashboardData = async () => {
       try {
-        await api.get('/auth/logout');
-        logoutUser();
-        navigate('/login');
+        const response = await api.get('/resume/dashboard');
+        setStats({
+          avgScore: response.data.stats.avgScore,
+          totalScans: response.data.stats.totalScans
+        });
+        setRecentScans(response.data.stats.recentScans);
       } catch (error) {
-        showAlert.error('Logout Failed', 'Could not securely log out. Try again.');
+        console.error("Failed to fetch dashboard data", error);
+      } finally {
+        setIsLoading(false);
       }
-    }
-  };
+    };
 
-  const getInitials = (name) => {
-    return name ? name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : 'U';
-  };
+    fetchDashboardData();
+  }, []);
 
   const getMatchTheme = (score) => {
+    if (!score) return { bg: '#f1f5f9', color: '#64748b' }; // Unscored
     if (score >= 80) return { bg: '#ecfdf5', color: '#059669' };
     if (score >= 60) return { bg: '#fffbeb', color: '#b45309' };
     return { bg: '#fff1f2', color: '#e11d48' };
+  };
+
+  // Helper to format MySQL timestamps securely
+  const formatDate = (dateString) => {
+    const options = { month: 'short', day: 'numeric', year: 'numeric' };
+    return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
   const firstName = user?.name ? user.name.split(' ')[0] : null;
@@ -81,41 +94,6 @@ const Dashboard = () => {
       <span className="dash-blob dash-blob-1" />
       <span className="dash-blob dash-blob-2" />
 
-      {/* Top Nav */}
-      <motion.nav
-        initial={{ y: -16, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="dash-nav"
-      >
-        <div className="dash-nav-inner">
-          
-          {/* REPLACE OLD BRANDING WITH THE LOGO COMPONENT */}
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <Logo width={42} height={42} showText={true} />
-          </Link>
-
-          <div className="dash-nav-right">
-            <div className="dash-user-chip">
-              <div className="dash-user-text">
-                <span className="dash-user-name">{user?.name || 'Welcome back'}</span>
-                <span className="dash-user-email">{user?.email || 'Candidate'}</span>
-              </div>
-              <div className="dash-avatar">{getInitials(user?.name)}</div>
-            </div>
-
-            <motion.button whileTap={{ scale: 0.94 }} onClick={handleLogout} className="dash-logout-btn" title="Sign out">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path fillRule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z" />
-                <path fillRule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z" />
-              </svg>
-              <span className="dash-logout-label">Sign out</span>
-            </motion.button>
-          </div>
-        </div>
-      </motion.nav>
-
-      {/* Main Content */}
       <motion.div className="dash-container" variants={containerVariants} initial="hidden" animate="show">
         <motion.div variants={itemVariants} className="dash-heading-row">
           <span className="dash-eyebrow">Dashboard</span>
@@ -154,7 +132,8 @@ const Dashboard = () => {
             <div className="dash-stat-text">
               <span className="dash-stat-label">Avg. ATS match</span>
               <span className="dash-stat-value">
-                <AnimatedNumber value={stats.avgScore} />%<span className="dash-stat-trend">↑</span>
+                {isLoading ? '...' : <AnimatedNumber value={stats.avgScore} />}%
+                {!isLoading && stats.avgScore > 0 && <span className="dash-stat-trend">↑</span>}
               </span>
             </div>
             <div className="dash-stat-icon dash-stat-icon-success">
@@ -167,7 +146,9 @@ const Dashboard = () => {
           <div className="dash-stat-card">
             <div className="dash-stat-text">
               <span className="dash-stat-label">Resumes scanned</span>
-              <span className="dash-stat-value"><AnimatedNumber value={stats.totalScans} /></span>
+              <span className="dash-stat-value">
+                {isLoading ? '...' : <AnimatedNumber value={stats.totalScans} />}
+              </span>
             </div>
             <div className="dash-stat-icon dash-stat-icon-indigo">
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
@@ -185,43 +166,51 @@ const Dashboard = () => {
           </div>
 
           <div className="dash-list-card">
-            {recentScans.map((scan) => {
-              const theme = getMatchTheme(scan.score);
-              return (
-                <motion.div
-                  key={scan.id}
-                  whileHover={{ backgroundColor: '#f8f9fc' }}
-                  whileTap={{ scale: 0.99 }}
-                  className="dash-list-item"
-                >
-                  <div className="dash-list-left">
-                    <div className="dash-list-icon">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2m5.5 1.5v2a1 1 0 0 0 1 1h2z" />
-                      </svg>
-                    </div>
-                    <div className="dash-list-text">
-                      <h6 className="dash-list-filename">{scan.fileName}</h6>
-                      <small className="dash-list-time">{scan.scannedAt}</small>
-                    </div>
-                  </div>
-                  <div className="dash-list-right">
-                    <span className="dash-match-badge" style={{ background: theme.bg, color: theme.color }}>
-                      {scan.score}% match
-                    </span>
-                    <svg className="dash-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z" />
-                    </svg>
-                  </div>
-                </motion.div>
-              );
-            })}
+            {isLoading ? (
+              <div className="p-4 text-center text-secondary small">Loading your reports...</div>
+            ) : recentScans.length === 0 ? (
+              <div className="p-4 text-center text-secondary small">No scans yet. Upload your first resume to get started!</div>
+            ) : (
+              recentScans.map((scan) => {
+                const theme = getMatchTheme(scan.score);
+                return (
+                  <Link to={`/report/${scan.id}`} key={scan.id} className="text-decoration-none">
+                    <motion.div
+                      whileHover={{ backgroundColor: '#f8f9fc' }}
+                      whileTap={{ scale: 0.99 }}
+                      className="dash-list-item"
+                    >
+                      <div className="dash-list-left">
+                        <div className="dash-list-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2m5.5 1.5v2a1 1 0 0 0 1 1h2z" />
+                          </svg>
+                        </div>
+                        <div className="dash-list-text">
+                          {/* File Name & Target Role mapping */}
+                          <h6 className="dash-list-filename">{scan.jobProfile}</h6>
+                          <small className="dash-list-time">{scan.fileName} • {formatDate(scan.scannedAt)}</small>
+                        </div>
+                      </div>
+                      <div className="dash-list-right">
+                        <span className="dash-match-badge" style={{ background: theme.bg, color: theme.color }}>
+                          {scan.score ? `${scan.score}% match` : 'Pending'}
+                        </span>
+                        <svg className="dash-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                          <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z" />
+                        </svg>
+                      </div>
+                    </motion.div>
+                  </Link>
+                );
+              })
+            )}
           </div>
         </motion.div>
       </motion.div>
 
+      {/* KEEP ALL YOUR ORIGINAL DASH CSS HERE EXACTLY AS IT WAS */}
       <style>{`
-        /* ... Keeping the rest of your original CSS exactly the same ... */
         .dash-page {
           position: relative;
           min-height: 100vh;
@@ -246,64 +235,6 @@ const Dashboard = () => {
         @keyframes dash-float {
           0%, 100% { transform: translate(0, 0); }
           50% { transform: translate(22px, -26px); }
-        }
-
-        .dash-nav {
-          position: sticky;
-          top: 0;
-          z-index: 20;
-          background: rgba(255, 255, 255, 0.78);
-          backdrop-filter: blur(14px);
-          border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-          padding: 0.8rem 1.25rem;
-        }
-        .dash-nav-inner {
-          max-width: 1080px;
-          margin: 0 auto;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-        }
-
-        .dash-nav-right { display: flex; align-items: center; gap: 0.9rem; }
-        .dash-user-chip { display: none; align-items: center; gap: 0.65rem; }
-        @media (min-width: 576px) { .dash-user-chip { display: flex; } }
-        .dash-user-text { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
-        .dash-user-name { font-weight: 700; font-size: 0.88rem; color: #0f172a; }
-        .dash-user-email { font-size: 0.76rem; color: #94a0b8; }
-        .dash-avatar {
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
-          background: #eef2ff;
-          color: #4338ca;
-          font-weight: 800;
-          font-size: 0.85rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .dash-logout-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          border: 1px solid rgba(15, 23, 42, 0.08);
-          background: #fff;
-          color: #e11d48;
-          font-weight: 600;
-          font-size: 0.85rem;
-          border-radius: 999px;
-          padding: 0.5rem 0.65rem;
-          cursor: pointer;
-          transition: background 0.2s ease, box-shadow 0.2s ease;
-        }
-        .dash-logout-btn:hover { background: #fff1f2; box-shadow: 0 6px 16px -8px rgba(225, 29, 72, 0.35); }
-        .dash-logout-label { display: none; }
-        @media (min-width: 768px) {
-          .dash-logout-btn { padding: 0.5rem 1.1rem; }
-          .dash-logout-label { display: inline; }
         }
 
         .dash-container { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 2rem 1.25rem 0; }
@@ -409,7 +340,7 @@ const Dashboard = () => {
           overflow: hidden;
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 16px 34px -24px rgba(15, 23, 42, 0.2);
         }
-        .dash-list-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; cursor: pointer; }
+        .dash-list-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; cursor: pointer; color: inherit; }
         .dash-list-item:not(:first-child) { border-top: 1px solid rgba(15, 23, 42, 0.06); }
         .dash-list-left { display: flex; align-items: center; gap: 0.9rem; min-width: 0; flex: 1; }
         .dash-list-icon {

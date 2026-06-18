@@ -16,6 +16,7 @@ import fs from "fs";
 // --- ROUTES ---
 import authRoutes from './routes/authRoutes.js';
 import resumeRoutes from './routes/resumeRoutes.js';
+import contactRoutes from './routes/contactRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -125,6 +126,7 @@ app.use("/admin/image", express.static(path.join(__dirname, "admin", "image"), {
 // --- 7. API ROUTES ---
 app.use('/api/auth', authRoutes);
 app.use('/api/resume', resumeRoutes);
+app.use('/api/contact', contactRoutes);
 
 // --- 8. GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {

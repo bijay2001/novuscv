@@ -1,27 +1,26 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Logo from '../components/Logo'; // Make sure the path is correct!
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  
-  // 1. If we are still checking the session, show a clean loading screen
+
   if (loading) {
+    // A premium, branded loading screen (No "free tier" warnings!)
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
+      <div className="min-vh-100 d-flex flex-column justify-content-center align-items-center" style={{ backgroundColor: '#0B1017' }}>
+        <Logo width={64} height={64} showText={false} />
+        <div className="spinner-border text-success mt-4" role="status" style={{ width: '2rem', height: '2rem' }}></div>
+        <p className="text-secondary mt-3 font-monospace small">VERIFYING SECURE CONNECTION...</p>
       </div>
     );
   }
 
-  // 2. If it finished checking and there is no user, boot them to login
   if (!user) {
-    return <Navigate to="/login" replace />; 
+    return <Navigate to="/login" replace />;
   }
-  
-  // 3. Otherwise, let them in!
+
   return children;
 };
 

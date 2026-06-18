@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { showAlert } from '../utils/alerts';
-import Logo from '../components/Logo';
 import { motion } from 'framer-motion';
 
 const Login = () => {
@@ -13,7 +12,13 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const { loginUser } = useAuth();
+  const { loginUser, user, loading: isSessionLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isSessionLoading && user) {
+      navigate('/');
+    }
+  }, [user, isSessionLoading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,16 +38,12 @@ const Login = () => {
     }
   };
 
-  // --- Ultra-Premium Scoped Styles ---
   const premiumStyles = `
     .font-mono-head { font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; }
     .bg-ink-navy { background-color: #0B1017; position: relative; overflow: hidden; }
     .text-verified-green { color: #10B981; }
-    
-    /* Soft Mobile Background */
     .bg-app-soft { background-color: #f8fafc; }
     
-    /* Modern Floating Glass Card */
     .premium-card {
       background: #ffffff;
       border-radius: 1.5rem;
@@ -50,7 +51,6 @@ const Login = () => {
       border: 1px solid rgba(226, 232, 240, 0.8);
     }
 
-    /* Next-Gen Input Fields */
     .input-modern {
       background-color: #f1f5f9;
       border: 2px solid transparent;
@@ -69,7 +69,6 @@ const Login = () => {
     }
     .input-modern::placeholder { color: #94a0b8; font-weight: 400; }
     
-    /* Desktop Laser Scanner Animation */
     .scan-line {
       position: absolute;
       left: 0;
@@ -96,36 +95,32 @@ const Login = () => {
     }
   `;
 
-  // Animation Variants
-  const fadeUp = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
   };
 
   return (
-    <div className="min-vh-100 d-flex bg-app-soft">
+    <div className="d-flex flex-grow-1 bg-app-soft w-100">
       <style>{premiumStyles}</style>
 
-      <div className="row g-0 w-100">
+      <div className="row g-0 w-100 h-100">
         
-        {/* --- PANEL 1: DESKTOP BRANDING (Hidden on Mobile) --- */}
-        <div className="col-lg-5 bg-ink-navy d-none d-lg-flex flex-column justify-content-between p-5 text-white border-end border-dark">
+        {/* --- PANEL 1: AI SCANNER ANIMATION (Hidden on Mobile) --- */}
+        <div className="col-lg-5 bg-ink-navy d-none d-lg-flex flex-column justify-content-center align-items-center p-5 text-white border-end border-dark">
           
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-            <Logo width={44} height={44} showText={true} textColor="#ffffff" />
-            <p className="text-secondary mt-3 mb-0 font-mono-head" style={{ fontSize: '0.85rem', letterSpacing: '0.5px' }}>
-              // The new era of CV optimization.
-            </p>
-          </motion.div>
-
-          {/* Central Mockup Motif Area */}
-          <div className="w-100 d-flex justify-content-center my-auto position-relative py-4">
+          <div className="w-100 d-flex justify-content-center position-relative">
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} 
+              initial={{ scale: 0.95, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
-              transition={{ delay: 0.2, duration: 0.6 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
               className="card bg-dark bg-opacity-25 border border-secondary border-opacity-25 rounded-4 p-4 shadow-lg position-relative overflow-hidden w-100" 
-              style={{ maxWidth: '380px' }}
+              style={{ maxWidth: '400px' }}
             >
               <div className="scan-line"></div>
               
@@ -151,41 +146,29 @@ const Login = () => {
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="small text-secondary font-mono-head">
-            // SYSTEM CONNECTION ESTABLISHED
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="small text-secondary font-mono-head mt-5 text-center">
+            // SECURE CONNECTION ESTABLISHED
           </motion.div>
         </div>
 
-        {/* --- PANEL 2: INTERACTIVE FORM (Centered Floating Card on Mobile) --- */}
-        <div className="col-12 col-lg-7 d-flex flex-column justify-content-center align-items-center p-3 p-md-5 position-relative">
+        {/* --- PANEL 2: INTERACTIVE FORM --- */}
+        <div className="col-12 col-lg-7 d-flex flex-column justify-content-center align-items-center p-4 p-md-5">
           
           <motion.div 
-            className="w-100 premium-card p-4 p-sm-5" 
-            style={{ maxWidth: '440px' }}
-            variants={fadeUp}
+            className="w-100 premium-card p-4 p-sm-5 my-auto" 
+            style={{ maxWidth: '460px' }}
+            variants={containerVariants}
             initial="hidden"
             animate="show"
           >
-            
-            {/* Mobile Branding (Only visible on small screens) */}
-            <div className="d-lg-none text-center mb-4 pb-2 border-bottom border-light">
-              <div className="d-flex justify-content-center mb-3">
-                 <Logo width={42} height={42} showText={true} textColor="#0f172a" />
-              </div>
-              <p className="text-secondary small fw-medium mb-3">
-                The new era of CV optimization.
-              </p>
-            </div>
-
-            <div className="mb-4 text-center text-lg-start">
+            <motion.div variants={itemVariants} className="mb-4 text-center text-lg-start">
               <h3 className="fw-bolder text-dark mb-2 tracking-tight" style={{ letterSpacing: '-0.5px' }}>Welcome Back</h3>
               <p className="text-secondary small fw-medium">Enter your credentials to access your dashboard.</p>
-            </div>
+            </motion.div>
 
             <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
               
-              {/* Modern Input: Email */}
-              <div>
+              <motion.div variants={itemVariants}>
                 <label className="form-label small fw-bold text-dark mb-1 ms-1">Email Address</label>
                 <input 
                   type="email" 
@@ -195,10 +178,9 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)} 
                   required 
                 />
-              </div>
+              </motion.div>
 
-              {/* Modern Input: Password */}
-              <div>
+              <motion.div variants={itemVariants}>
                 <label className="form-label small fw-bold text-dark mb-1 ms-1">Password</label>
                 <input 
                   type="password" 
@@ -208,10 +190,9 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)} 
                   required 
                 />
-              </div>
+              </motion.div>
 
-              {/* Switches & Links */}
-              <div className="d-flex justify-content-between align-items-center mt-2 mb-2 px-1">
+              <motion.div variants={itemVariants} className="d-flex align-items-center mt-2 mb-2 px-1">
                 <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
                   <input 
                     className="form-check-input mt-0" 
@@ -219,42 +200,40 @@ const Login = () => {
                     id="rememberSwitch" 
                     checked={rememberMe} 
                     onChange={(e) => setRememberMe(e.target.checked)} 
-                    style={{ cursor: 'pointer', width: '2rem', height: '1rem' }}
+                    style={{ cursor: 'pointer', width: '2.2rem', height: '1.1rem' }}
                   />
                   <label className="form-check-label text-secondary small fw-medium mt-1" htmlFor="rememberSwitch" style={{ cursor: 'pointer' }}>
-                    Remember me
+                    Remember my device
                   </label>
                 </div>
-                <Link to="/forgot-password" className="text-decoration-none small fw-bold text-primary transition-all">
-                  Forgot Password?
-                </Link>
-              </div>
+              </motion.div>
 
-              {/* Main Call to Action */}
-              <motion.button 
-                whileHover={!loading ? { y: -2, boxShadow: "0 10px 20px -10px rgba(13, 110, 253, 0.6)" } : {}}
-                whileTap={!loading ? { scale: 0.98 } : {}}
-                type="submit" 
-                disabled={loading} 
-                className="btn btn-primary w-100 rounded-pill py-3 mt-2 fs-6 fw-bold border-0 text-white"
-                style={{ background: loading ? '#94a3b8' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', transition: 'all 0.3s' }}
-              >
-                {loading ? (
-                  <div className="d-flex align-items-center justify-content-center gap-2">
-                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    <span>Authenticating...</span>
-                  </div>
-                ) : 'Sign In'}
-              </motion.button>
+              <motion.div variants={itemVariants}>
+                <motion.button 
+                  whileHover={!loading ? { y: -2, boxShadow: "0 10px 20px -10px rgba(13, 110, 253, 0.6)" } : {}}
+                  whileTap={!loading ? { scale: 0.98 } : {}}
+                  type="submit" 
+                  disabled={loading} 
+                  className="btn btn-primary w-100 rounded-pill py-3 mt-2 fs-6 fw-bold border-0 text-white"
+                  style={{ background: loading ? '#94a3b8' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', transition: 'all 0.3s' }}
+                >
+                  {loading ? (
+                    <div className="d-flex align-items-center justify-content-center gap-2">
+                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                      <span>Authenticating...</span>
+                    </div>
+                  ) : 'Sign In'}
+                </motion.button>
+              </motion.div>
               
             </form>
 
-            <div className="text-center mt-4 pt-3 border-top border-light">
+            <motion.div variants={itemVariants} className="text-center mt-4 pt-4 border-top border-light">
               <span className="text-secondary small fw-medium">Don't have an account? </span>
               <Link to="/register" className="text-decoration-none small fw-bold text-primary ms-1">
                 Create one now
               </Link>
-            </div>
+            </motion.div>
 
           </motion.div>
         </div>
