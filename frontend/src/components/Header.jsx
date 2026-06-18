@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { showAlert } from '../utils/alerts';
-import Logo from './Logo';
 import { motion } from 'framer-motion';
+import logoImage from '../assets/logo.png'; // Direct import
 
 const Header = () => {
   const { user, logoutUser } = useAuth();
@@ -40,10 +40,10 @@ const Header = () => {
       >
         <div className="global-nav-inner">
           
-          {/* Logo Section */}
-          <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none">
-            <Logo width={32} height={32} showText={false} textColor="#0f172a" />
-            <span className="fs-5 fw-bold text-dark d-none d-sm-block" style={{ letterSpacing: '-0.5px' }}>NovusCV</span>
+          {/* Logo Section - Increased size to 36 and gap to 3 */}
+          <Link to="/" className="d-flex align-items-center gap-3 text-decoration-none">
+            <img src={logoImage} alt="NovusCV Logo" width="36" height="36" style={{ objectFit: 'contain' }} />
+            <span className="fs-4 fw-bolder text-dark d-none d-sm-block" style={{ letterSpacing: '-0.5px' }}>NovusCV</span>
           </Link>
 
           {/* Right Side Actions */}
@@ -109,7 +109,6 @@ const Header = () => {
           gap: 0.5rem; 
         }
         
-        /* User Chip is now ALWAYS Flex so it shows on mobile */
         .global-user-chip { 
           display: flex; 
           align-items: center; 
