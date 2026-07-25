@@ -10,7 +10,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   const navigate = useNavigate();
   const { loginUser, user, loading: isSessionLoading } = useAuth();
 
@@ -23,14 +23,14 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const response = await api.post('/auth/login', { email, password, rememberMe });
       loginUser(response.data.user);
-      navigate('/'); 
+      navigate('/');
     } catch (err) {
       showAlert.error(
-        'Login Failed', 
+        'Login Failed',
         err.response?.data?.message || 'Check your internet connection and try again.'
       );
     } finally {
@@ -38,199 +38,392 @@ const Login = () => {
     }
   };
 
-  const premiumStyles = `
-    .font-mono-head { font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; }
-    .bg-ink-navy { background-color: #0B1017; position: relative; overflow: hidden; }
-    .text-verified-green { color: #10B981; }
-    .bg-app-soft { background-color: #f8fafc; }
-    
-    .premium-card {
-      background: #ffffff;
-      border-radius: 1.5rem;
-      box-shadow: 0 20px 40px -15px rgba(0,0,0,0.05);
-      border: 1px solid rgba(226, 232, 240, 0.8);
+  const consoleStyles = `
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+    .ec-root {
+      --ec-bg: #0A0D12;
+      --ec-panel: #12161C;
+      --ec-panel-alt: #161B22;
+      --ec-surface: #1A2029;
+      --ec-border: #232A35;
+      --ec-border-soft: #1D232D;
+      --ec-amber: #F0A22E;
+      --ec-amber-dim: rgba(240, 162, 46, 0.14);
+      --ec-teal: #2DD4BF;
+      --ec-teal-dim: rgba(45, 212, 191, 0.14);
+      --ec-text: #E7E9EC;
+      --ec-muted: #7C8592;
+      --ec-muted-2: #4B5563;
+      font-family: 'IBM Plex Mono', SFMono-Regular, Menlo, monospace;
+      background: var(--ec-bg);
+      min-height: 100%;
     }
 
-    .input-modern {
-      background-color: #f1f5f9;
-      border: 2px solid transparent;
-      padding: 0.875rem 1.25rem;
-      border-radius: 0.85rem;
-      font-size: 0.95rem;
-      color: #1e293b;
-      font-weight: 500;
-      transition: all 0.2s ease;
+    .ec-heading { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.02em; }
+
+    .ec-grid-bg {
+      background-image:
+        linear-gradient(rgba(240, 162, 46, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(240, 162, 46, 0.045) 1px, transparent 1px);
+      background-size: 34px 34px;
+      background-position: -1px -1px;
     }
-    .input-modern:focus {
-      background-color: #ffffff;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
-      outline: none;
+
+    .ec-rail {
+      background: var(--ec-panel);
+      position: relative;
     }
-    .input-modern::placeholder { color: #94a0b8; font-weight: 400; }
-    
-    .scan-line {
+    .ec-rail::after {
+      content: '';
       position: absolute;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, rgba(16,185,129,0) 0%, rgba(16,185,129,1) 50%, rgba(16,185,129,0) 100%);
-      box-shadow: 0 0 15px #10B981;
-      animation: laserMove 3s infinite ease-in-out;
-      z-index: 10;
-    }
-    
-    @keyframes laserMove {
-      0% { top: 0%; opacity: 0; }
-      15% { opacity: 1; }
-      85% { opacity: 1; }
-      100% { top: 100%; opacity: 0; }
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset -1px 0 0 var(--ec-border);
     }
 
-    .skeleton-line {
-      height: 8px;
-      background-color: rgba(255, 255, 255, 0.08);
-      border-radius: 4px;
-      margin-bottom: 12px;
+    .ec-frame {
+      position: relative;
+      background: var(--ec-panel-alt);
+      border: 1px solid var(--ec-border);
+      border-radius: 6px;
+      padding: 2.25rem 2rem;
+    }
+    .ec-corner {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--ec-amber);
+      opacity: 0.75;
+    }
+    .ec-corner.tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+    .ec-corner.tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+    .ec-corner.bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+    .ec-corner.br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+    .ec-eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      color: var(--ec-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .ec-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ec-teal);
+      box-shadow: 0 0 8px var(--ec-teal);
+      display: inline-block;
+      animation: ec-pulse 2.2s ease-in-out infinite;
+    }
+    @keyframes ec-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    .ec-gauge-ring-bg { stroke: var(--ec-border); fill: none; }
+    .ec-gauge-ring-fg {
+      stroke: var(--ec-amber);
+      fill: none;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 6px rgba(240, 162, 46, 0.5));
+      transform-origin: center;
+      transform: rotate(-90deg);
+    }
+
+    .ec-stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--ec-border-soft);
+      font-size: 0.72rem;
+    }
+    .ec-stat-row:last-child { border-bottom: none; }
+    .ec-stat-label { color: var(--ec-muted); letter-spacing: 0.06em; }
+    .ec-stat-value { color: var(--ec-text); font-weight: 500; }
+
+    .ec-badge {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      padding: 0.3rem 0.65rem;
+      border-radius: 3px;
+      border: 1px solid rgba(45, 212, 191, 0.35);
+      background: var(--ec-teal-dim);
+      color: var(--ec-teal);
+      font-weight: 600;
+    }
+
+    .ec-field-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      color: var(--ec-muted);
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .ec-input {
+      width: 100%;
+      background: var(--ec-surface);
+      border: 1px solid var(--ec-border);
+      border-radius: 6px;
+      padding: 0.85rem 1rem;
+      font-size: 0.9rem;
+      color: var(--ec-text);
+      font-family: 'IBM Plex Mono', monospace;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    .ec-input::placeholder { color: var(--ec-muted-2); }
+    .ec-input:focus {
+      outline: none;
+      border-color: var(--ec-amber);
+      background: #1D2430;
+      box-shadow: 0 0 0 3px rgba(240, 162, 46, 0.14);
+    }
+
+    .ec-toggle {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 34px;
+      height: 19px;
+      border-radius: 999px;
+      background: var(--ec-surface);
+      border: 1px solid var(--ec-border);
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+    }
+    .ec-toggle::before {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--ec-muted);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .ec-toggle:checked { background: var(--ec-amber-dim); border-color: var(--ec-amber); }
+    .ec-toggle:checked::before { transform: translateX(15px); background: var(--ec-amber); }
+
+    .ec-submit {
+      width: 100%;
+      background: var(--ec-amber);
+      color: #14110A;
+      border: none;
+      border-radius: 6px;
+      padding: 0.9rem 1rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: box-shadow 0.2s ease, transform 0.15s ease, background 0.2s ease;
+    }
+    .ec-submit:hover:not(:disabled) {
+      box-shadow: 0 0 0 3px rgba(240, 162, 46, 0.2), 0 8px 24px -8px rgba(240, 162, 46, 0.5);
+    }
+    .ec-submit:active:not(:disabled) { transform: translateY(1px); }
+    .ec-submit:disabled { background: #3A3F47; color: var(--ec-muted); cursor: not-allowed; }
+    .ec-submit:focus-visible { outline: 2px solid var(--ec-teal); outline-offset: 2px; }
+
+    .ec-spinner {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #14110A;
+      animation: ec-spin 0.7s linear infinite;
+    }
+    @keyframes ec-spin { to { transform: rotate(360deg); } }
+
+    .ec-link { color: var(--ec-teal); font-weight: 600; text-decoration: none; }
+    .ec-link:hover { text-decoration: underline; }
+
+    .ec-divider { border-color: var(--ec-border-soft) !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ec-dot, .ec-spinner { animation: none; }
     }
   `;
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
+    show: { opacity: 1, transition: { staggerChildren: 0.07, delayChildren: 0.05 } }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 320, damping: 26 } }
   };
 
+  // Decorative gauge geometry (94.2%)
+  const R = 70;
+  const CIRC = 2 * Math.PI * R;
+  const FILLED = CIRC * 0.942;
+
   return (
-    <div className="d-flex flex-grow-1 bg-app-soft w-100">
-      <style>{premiumStyles}</style>
+    <div className="ec-root d-flex flex-grow-1 w-100">
+      <style>{consoleStyles}</style>
 
       <div className="row g-0 w-100 h-100">
-        
-        {/* --- PANEL 1: AI SCANNER ANIMATION (Hidden on Mobile) --- */}
-        <div className="col-lg-5 bg-ink-navy d-none d-lg-flex flex-column justify-content-center align-items-center p-3 text-white border-end border-dark">
-          
-          <div className="w-100 d-flex justify-content-center position-relative">
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="card bg-dark bg-opacity-25 border border-secondary border-opacity-25 rounded-4 p-3 shadow-lg position-relative overflow-hidden w-100" 
-              style={{ maxWidth: '400px' }}
-            >
-              <div className="scan-line"></div>
-              
-              <div className="d-flex align-items-center gap-3 mb-4">
-                <div className="bg-secondary bg-opacity-20 rounded-circle" style={{ width: '48px', height: '48px' }}></div>
-                <div className="w-50">
-                  <div className="skeleton-line w-75 bg-primary bg-opacity-50"></div>
-                  <div className="skeleton-line w-100" style={{ height: '6px' }}></div>
-                </div>
-                <span className="badge bg-success bg-opacity-10 text-verified-green border border-success border-opacity-25 ms-auto small rounded-pill py-2 px-3 font-mono-head">
-                  PASSED
+
+        {/* --- LEFT RAIL: INSTRUMENT PANEL (desktop only) --- */}
+        <div className="col-lg-5 ec-rail ec-grid-bg d-none d-lg-flex flex-column justify-content-center align-items-center p-5">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="w-100"
+            style={{ maxWidth: '380px' }}
+          >
+            <div className="ec-frame">
+              <span className="ec-corner tl" />
+              <span className="ec-corner tr" />
+              <span className="ec-corner bl" />
+              <span className="ec-corner br" />
+
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <span className="ec-eyebrow">Auth.Module</span>
+                <span className="ec-badge">
+                  <span className="ec-dot me-2" style={{ verticalAlign: 'middle' }} />
+                  ONLINE
                 </span>
               </div>
-              
-              <div className="skeleton-line w-100"></div>
-              <div className="skeleton-line w-100"></div>
-              <div className="skeleton-line w-75 mb-4"></div>
 
-              <div className="border-top border-secondary border-opacity-25 pt-4 d-flex justify-content-between align-items-center mt-2">
-                <span className="small font-mono-head text-secondary">ATS MATCH SCORE</span>
-                <span className="fw-bolder text-verified-green font-mono-head fs-4">94.2%</span>
+              <div className="d-flex justify-content-center py-2 mb-3">
+                <svg width="160" height="160" viewBox="0 0 160 160">
+                  <circle className="ec-gauge-ring-bg" cx="80" cy="80" r={R} strokeWidth="10" />
+                  <circle
+                    className="ec-gauge-ring-fg"
+                    cx="80" cy="80" r={R}
+                    strokeWidth="10"
+                    strokeDasharray={CIRC}
+                    strokeDashoffset={CIRC - FILLED}
+                  />
+                  <text
+                    x="80" y="76" textAnchor="middle"
+                    fill="#E7E9EC" fontSize="26" fontWeight="700"
+                    fontFamily="Space Grotesk, sans-serif"
+                  >
+                    94.2%
+                  </text>
+                  <text
+                    x="80" y="96" textAnchor="middle"
+                    fill="#7C8592" fontSize="9" letterSpacing="1.5"
+                    fontFamily="IBM Plex Mono, monospace"
+                  >
+                    MATCH SCORE
+                  </text>
+                </svg>
               </div>
-            </motion.div>
-          </div>
+
+              <div className="mt-3">
+                <div className="ec-stat-row">
+                  <span className="ec-stat-label">SESSION</span>
+                  <span className="ec-stat-value">SECURE</span>
+                </div>
+                <div className="ec-stat-row">
+                  <span className="ec-stat-label">ENCRYPTION</span>
+                  <span className="ec-stat-value">AES-256</span>
+                </div>
+                <div className="ec-stat-row">
+                  <span className="ec-stat-label">LATENCY</span>
+                  <span className="ec-stat-value">12ms</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="ec-eyebrow text-center mt-4 mb-0">// Resume Intelligence Workspace</p>
+          </motion.div>
         </div>
 
-        {/* --- PANEL 2: INTERACTIVE FORM --- */}
+        {/* --- RIGHT: FORM --- */}
         <div className="col-12 col-lg-7 d-flex flex-column justify-content-center align-items-center p-3 p-md-5">
-          
-          <motion.div 
-            className="w-100 premium-card p-4 p-sm-5 my-auto" 
-            style={{ maxWidth: '460px' }}
+          <motion.div
+            className="w-100"
+            style={{ maxWidth: '420px' }}
             variants={containerVariants}
             initial="hidden"
             animate="show"
           >
-            <motion.div variants={itemVariants} className="mb-4 text-center text-lg-start">
-              <h3 className="fw-bolder text-dark mb-2 tracking-tight" style={{ letterSpacing: '-0.5px' }}>Welcome Back</h3>
-              <p className="text-secondary small fw-medium">Enter your credentials to access your dashboard.</p>
+            <motion.div variants={itemVariants} className="mb-4">
+              <span className="ec-eyebrow">// Session Login</span>
+              <h3 className="ec-heading fw-bold mt-2 mb-2" style={{ color: '#E7E9EC', fontSize: '1.85rem' }}>
+                Welcome back
+              </h3>
+              <p style={{ color: '#7C8592', fontSize: '0.85rem' }} className="mb-0">
+                Enter your credentials to access your dashboard.
+              </p>
             </motion.div>
 
-            <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
-              
-              <motion.div variants={itemVariants}>
-                <label className="form-label small fw-bold text-dark mb-1 ms-1">Email Address</label>
-                <input 
-                  type="email" 
-                  className="form-control input-modern w-100" 
+            <form onSubmit={handleSubmit}>
+              <motion.div variants={itemVariants} className="mb-3">
+                <label className="ec-field-label">Email Address</label>
+                <input
+                  type="email"
+                  className="ec-input"
                   placeholder="name@example.com"
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  required 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </motion.div>
 
-              <motion.div variants={itemVariants}>
-                <label className="form-label small fw-bold text-dark mb-1 ms-1">Password</label>
-                <input 
-                  type="password" 
-                  className="form-control input-modern w-100" 
+              <motion.div variants={itemVariants} className="mb-3">
+                <label className="ec-field-label">Password</label>
+                <input
+                  type="password"
+                  className="ec-input"
                   placeholder="••••••••"
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  required 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
               </motion.div>
 
-              <motion.div variants={itemVariants} className="d-flex align-items-center mt-2 mb-2 px-1">
-                <div className="form-check form-switch m-0 d-flex align-items-center gap-2">
-                  <input 
-                    className="form-check-input mt-0" 
-                    type="checkbox" 
-                    id="rememberSwitch" 
-                    checked={rememberMe} 
-                    onChange={(e) => setRememberMe(e.target.checked)} 
-                    style={{ cursor: 'pointer', width: '2.2rem', height: '1.1rem' }}
-                  />
-                  <label className="form-check-label text-secondary small fw-medium mt-1" htmlFor="rememberSwitch" style={{ cursor: 'pointer' }}>
-                    Remember my device
-                  </label>
-                </div>
+              <motion.div variants={itemVariants} className="d-flex align-items-center gap-2 mb-4 mt-1">
+                <input
+                  type="checkbox"
+                  id="rememberSwitch"
+                  className="ec-toggle"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <label htmlFor="rememberSwitch" style={{ color: '#7C8592', fontSize: '0.78rem', cursor: 'pointer' }}>
+                  Remember my device
+                </label>
               </motion.div>
 
               <motion.div variants={itemVariants}>
-                <motion.button 
-                  whileHover={!loading ? { y: -2, boxShadow: "0 10px 20px -10px rgba(13, 110, 253, 0.6)" } : {}}
+                <motion.button
                   whileTap={!loading ? { scale: 0.98 } : {}}
-                  type="submit" 
-                  disabled={loading} 
-                  className="btn btn-primary w-100 rounded-pill py-3 mt-2 fs-6 fw-bold border-0 text-white"
-                  style={{ background: loading ? '#94a3b8' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', transition: 'all 0.3s' }}
+                  type="submit"
+                  disabled={loading}
+                  className="ec-submit"
                 >
                   {loading ? (
-                    <div className="d-flex align-items-center justify-content-center gap-2">
-                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                      <span>Authenticating...</span>
-                    </div>
+                    <span className="d-flex align-items-center justify-content-center gap-2">
+                      <span className="ec-spinner" />
+                      Authenticating
+                    </span>
                   ) : 'Sign In'}
                 </motion.button>
               </motion.div>
-              
             </form>
 
-            <motion.div variants={itemVariants} className="text-center mt-4 pt-4 border-top border-light">
-              <span className="text-secondary small fw-medium">Don't have an account? </span>
-              <Link to="/register" className="text-decoration-none small fw-bold text-primary ms-1">
+            <motion.div variants={itemVariants} className="text-center mt-4 pt-4 border-top ec-divider">
+              <span style={{ color: '#7C8592', fontSize: '0.82rem' }}>Don't have an account? </span>
+              <Link to="/register" className="ec-link" style={{ fontSize: '0.82rem' }}>
                 Create one now
               </Link>
             </motion.div>
-
           </motion.div>
         </div>
 

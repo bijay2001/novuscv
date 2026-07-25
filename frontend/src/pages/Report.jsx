@@ -30,7 +30,7 @@ const AnimatedNumber = ({ value }) => {
     const increment = numValue / (duration / 16);
     const timer = setInterval(() => {
       start += increment;
-      if (start >= numValue) { setDisplayValue(numValue); clearInterval(timer); } 
+      if (start >= numValue) { setDisplayValue(numValue); clearInterval(timer); }
       else { setDisplayValue(Math.floor(start)); }
     }, 16);
     return () => clearInterval(timer);
@@ -38,50 +38,52 @@ const AnimatedNumber = ({ value }) => {
   return <>{displayValue}</>;
 };
 
-// --- 3. Score Gauge ---
+// --- 3. Score Gauge (flat instrument dial) ---
 const ScoreGauge = ({ score, theme }) => {
-  const size = 164;
+  const size = 168;
   const center = size / 2;
-  const radius = 64;
-  const stroke = 11;
+  const radius = 66;
+  const stroke = 10;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.min(Math.max(score, 0), 100);
   const offset = circumference - (clamped / 100) * circumference;
-  
+
   return (
-    <div className="ats-gauge-wrap">
+    <div className="ec-gauge-wrap">
       {score >= 80 && (
         <motion.span
-          className="ats-gauge-pulse"
-          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
+          className="ec-gauge-pulse"
+          style={{ background: theme.accentSoft }}
+          animate={{ scale: [1, 1.28, 1], opacity: [0.6, 0, 0.6] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         />
       )}
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth={stroke} />
+        <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={stroke} />
         <motion.circle
           cx={center} cy={center} r={radius} fill="none"
-          stroke={theme.ring[1]}
+          stroke={theme.accent}
           strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
           transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
+          style={{ filter: `drop-shadow(0 0 6px ${theme.accentSoft})` }}
         />
       </svg>
-      <div className="ats-gauge-center">
-        <span className="ats-gauge-number text-dark"><AnimatedNumber value={score} /></span>
-        <span className="ats-gauge-suffix fw-bold">/ 100</span>
+      <div className="ec-gauge-center">
+        <span className="ec-gauge-number"><AnimatedNumber value={score} /></span>
+        <span className="ec-gauge-suffix">/ 100</span>
       </div>
     </div>
   );
 };
 
-// --- 4. Themes ---
+// --- 4. Themes (tiered console signal colors) ---
 const getTheme = (score) => {
-  if (score >= 80) return { ring: ['#a7f3d0', '#10b981'], bg: 'linear-gradient(135deg, #047857 0%, #10b981 100%)', label: 'Highly Competitive', icon: '🏆' };
-  if (score >= 60) return { ring: ['#fde68a', '#f59e0b'], bg: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)', label: 'Needs Optimization', icon: '⚠️' };
-  return { ring: ['#fecdd3', '#f43f5e'], bg: 'linear-gradient(135deg, #9f1239 0%, #f43f5e 100%)', label: 'Major Red Flags', icon: '🚨' };
+  if (score >= 80) return { accent: '#2DD4BF', accentSoft: 'rgba(45, 212, 191, 0.16)', label: 'Highly Competitive', tier: 'OPTIMAL' };
+  if (score >= 60) return { accent: '#F0A22E', accentSoft: 'rgba(240, 162, 46, 0.16)', label: 'Needs Optimization', tier: 'CAUTION' };
+  return { accent: '#EF4444', accentSoft: 'rgba(239, 68, 68, 0.16)', label: 'Major Red Flags', tier: 'CRITICAL' };
 };
 
 // --- 5. Main Component ---
@@ -97,26 +99,196 @@ const Report = () => {
       try {
         const response = await api.get(`/resume/report/${id}`);
         setReport(response.data.report);
-      } catch (err) { console.error(err); } 
+      } catch (err) { console.error(err); }
       finally { setLoading(false); }
     };
     fetchReport();
   }, [id]);
 
+  const consoleStyles = `
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+    .ec-root {
+      --ec-bg: #0A0D12;
+      --ec-panel: #12161C;
+      --ec-panel-alt: #161B22;
+      --ec-surface: #1A2029;
+      --ec-border: #232A35;
+      --ec-border-soft: #1D232D;
+      --ec-amber: #F0A22E;
+      --ec-teal: #2DD4BF;
+      --ec-danger: #EF4444;
+      --ec-text: #E7E9EC;
+      --ec-muted: #7C8592;
+      --ec-muted-2: #4B5563;
+      background: var(--ec-bg);
+      min-height: 100%;
+    }
+    .ec-body { font-family: 'Inter', sans-serif; color: var(--ec-text); }
+    .ec-heading { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.02em; color: var(--ec-text); }
+    .ec-mono { font-family: 'IBM Plex Mono', SFMono-Regular, monospace; }
+
+    .ec-grid-bg {
+      background-image:
+        linear-gradient(rgba(240, 162, 46, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(240, 162, 46, 0.04) 1px, transparent 1px);
+      background-size: 34px 34px;
+      background-position: -1px -1px;
+    }
+
+    .ec-panel-box {
+      background: var(--ec-panel-alt);
+      border: 1px solid var(--ec-border);
+      border-radius: 8px;
+      position: relative;
+    }
+    .ec-corner { position: absolute; width: 14px; height: 14px; opacity: 0.7; }
+    .ec-corner.tl { top: -1px; left: -1px; border-top: 2px solid var(--ec-accent, var(--ec-amber)); border-left: 2px solid var(--ec-accent, var(--ec-amber)); }
+    .ec-corner.br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--ec-accent, var(--ec-amber)); border-right: 2px solid var(--ec-accent, var(--ec-amber)); }
+
+    .ec-eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      color: var(--ec-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .ec-tier-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .ec-tier-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    .ec-gauge-wrap { position: relative; display: flex; align-items: center; justify-content: center; width: 168px; height: 168px; }
+    .ec-gauge-center { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 2; }
+    .ec-gauge-number { font-family: 'Space Grotesk', sans-serif; font-size: 2.6rem; font-weight: 700; line-height: 1; letter-spacing: -1px; color: var(--ec-text); }
+    .ec-gauge-suffix { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: var(--ec-muted); margin-top: 2px; }
+    .ec-gauge-pulse { position: absolute; inset: -14px; border-radius: 50%; z-index: 0; }
+
+    .ec-stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid var(--ec-border-soft);
+      font-size: 0.85rem;
+    }
+    .ec-stat-row:last-child { border-bottom: none; }
+
+    .ec-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+      padding: 0.4rem 0.8rem;
+      border-radius: 5px;
+      border: 1px solid var(--ec-border);
+      background: var(--ec-surface);
+      color: var(--ec-text);
+      display: inline-block;
+    }
+    .ec-tag.pos { border-color: rgba(45, 212, 191, 0.35); background: rgba(45, 212, 191, 0.08); color: var(--ec-teal); }
+    .ec-tag.neg { border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.08); color: var(--ec-danger); }
+
+    .ec-list-item { display: flex; gap: 0.8rem; align-items: flex-start; padding: 0.65rem 0; border-bottom: 1px solid var(--ec-border-soft); }
+    .ec-list-item:last-child { border-bottom: none; }
+    .ec-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 0.5rem; flex-shrink: 0; }
+
+    .ec-index {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--ec-muted);
+      flex-shrink: 0;
+      width: 28px;
+    }
+
+    .ec-btn-ghost {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+      color: var(--ec-text);
+      background: var(--ec-panel-alt);
+      border: 1px solid var(--ec-border);
+      border-radius: 999px;
+      padding: 0.55rem 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      text-decoration: none;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .ec-btn-ghost:hover { border-color: var(--ec-muted); color: var(--ec-text); background: var(--ec-surface); }
+
+    .ec-btn-solid {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #14110A;
+      background: var(--ec-amber);
+      border: none;
+      border-radius: 999px;
+      padding: 0.6rem 1.3rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      transition: box-shadow 0.2s ease, transform 0.15s ease;
+    }
+    .ec-btn-solid:hover:not(:disabled) { box-shadow: 0 8px 22px -8px rgba(240, 162, 46, 0.55); }
+    .ec-btn-solid:active:not(:disabled) { transform: translateY(1px); }
+    .ec-btn-solid:disabled { background: #3A3F47; color: var(--ec-muted); cursor: not-allowed; }
+
+    .ec-spinner {
+      width: 13px; height: 13px; border-radius: 50%;
+      border: 2px solid rgba(0,0,0,0.2); border-top-color: #14110A;
+      animation: ec-spin 0.7s linear infinite;
+    }
+    .ec-spinner-light {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid rgba(240,162,46,0.2); border-top-color: var(--ec-amber);
+      animation: ec-spin 0.7s linear infinite;
+    }
+    @keyframes ec-spin { to { transform: rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ec-spinner, .ec-spinner-light { animation: none; }
+    }
+
+    @media (max-width: 767.98px) {
+      .ec-hero-split { flex-direction: column; }
+      .ec-hero-score { flex: 0 0 auto !important; width: 100%; }
+    }
+  `;
+
   if (loading) {
     return (
-      <div className="min-vh-100 d-flex flex-column align-items-center justify-content-center" style={{ backgroundColor: '#f4f7f6' }}>
-        <div className="spinner-border text-primary" role="status"></div>
-        <p className="mt-3 fw-bold text-secondary">Loading Report...</p>
+      <div className="ec-root ec-grid-bg min-vh-100 d-flex flex-column align-items-center justify-content-center">
+        <style>{consoleStyles}</style>
+        <div className="ec-spinner-light mb-3" />
+        <p className="ec-eyebrow mb-0">Loading Report</p>
       </div>
     );
   }
 
   if (!report) {
     return (
-      <div className="min-vh-100 d-flex flex-column align-items-center justify-content-center" style={{ backgroundColor: '#f4f7f6' }}>
-        <h4 className="text-danger fw-bold mb-3">Report not found</h4>
-        <Link to="/" className="btn btn-primary rounded-pill px-4">Back to Dashboard</Link>
+      <div className="ec-root ec-grid-bg min-vh-100 d-flex flex-column align-items-center justify-content-center px-3">
+        <style>{consoleStyles}</style>
+        <span className="ec-tag neg mb-3">ERROR 404</span>
+        <h4 className="ec-heading fw-bold mb-4" style={{ color: '#E7E9EC' }}>Report not found</h4>
+        <Link to="/" className="ec-btn-solid text-decoration-none">Back to Dashboard</Link>
       </div>
     );
   }
@@ -128,7 +300,7 @@ const Report = () => {
       margin: [0.4, 0.4, 0.4, 0.4],
       filename: `${safeName}_ATS_Report.pdf`,
       image: { type: 'jpeg', quality: 1 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0A0D12' },
       jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
     };
     setExporting(true);
@@ -137,7 +309,7 @@ const Report = () => {
 
   const theme = getTheme(report.ats_score);
   const isGeneral = !report.target_role || report.target_role.toLowerCase() === 'general application';
-  
+
   // Safely parse all arrays
   const matchedSkills = safeParseArray(report.matched_skills);
   const missingSkills = safeParseArray(report.missing_skills);
@@ -146,69 +318,87 @@ const Report = () => {
   const strengths = safeParseArray(report.strengths);
   const weaknesses = safeParseArray(report.weaknesses);
 
-  const containerVariants = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
-  const itemVariants = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+  const containerVariants = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
+  const itemVariants = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 26 } } };
 
   return (
-    <div className="position-relative min-vh-100 pb-5" style={{ backgroundColor: '#f8fafc', overflowX: 'hidden' }}>
-      {/* Background Blobs */}
-      <div className="position-absolute top-0 start-0 bg-primary opacity-10 rounded-circle" style={{ width: '400px', height: '400px', filter: 'blur(80px)', transform: 'translate(-30%, -30%)' }}></div>
-      <div className="position-absolute top-50 end-0 bg-success opacity-10 rounded-circle" style={{ width: '300px', height: '300px', filter: 'blur(80px)', transform: 'translate(30%, -30%)' }}></div>
+    <div className="ec-root ec-grid-bg ec-body position-relative min-vh-100 pb-5" style={{ overflowX: 'hidden' }}>
+      <style>{consoleStyles}</style>
 
-      <div className="container position-relative z-1 pt-4" style={{ maxWidth: '1000px' }}>
-        
+      <div className="container position-relative pt-4" style={{ maxWidth: '1000px' }}>
+
         {/* Action Bar */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <Link to="/" className="text-decoration-none text-dark fw-bold d-flex align-items-center gap-2 transition-all hover-primary">
-            <div className="bg-white rounded-circle p-2 shadow-sm d-flex align-items-center justify-content-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>
-            </div>
+        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <Link to="/" className="ec-btn-ghost">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>
             Back
           </Link>
-          <button onClick={handleExportPDF} className="btn btn-dark rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" disabled={exporting}>
-            {exporting ? <span className="spinner-border spinner-border-sm"></span> : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>}
-            {exporting ? 'Exporting...' : 'Export PDF'}
+          <button onClick={handleExportPDF} className="ec-btn-solid" disabled={exporting}>
+            {exporting ? <span className="ec-spinner" /> : <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>}
+            {exporting ? 'Exporting' : 'Export PDF'}
           </button>
         </div>
 
         {/* Printable Area Starts */}
-        <motion.div id="report-content" variants={containerVariants} initial="hidden" animate="show" className="bg-transparent p-1">
-          
+        <motion.div
+          id="report-content"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          style={{ background: 'var(--ec-bg)' }}
+        >
+
           <motion.div variants={itemVariants} className="mb-4">
-            <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill mb-2 fw-bold text-uppercase tracking-wide">
-              {isGeneral ? 'General ATS Scan' : 'Targeted Job Match'}
+            <span className="ec-eyebrow d-inline-block mb-2">
+              // {isGeneral ? 'General ATS Scan' : 'Targeted Job Match'}
             </span>
-            <h1 className="fw-bolder text-dark mb-1" style={{ letterSpacing: '-0.5px' }}>Resume Evaluation</h1>
-            <p className="text-secondary fw-medium">Analyzed on {new Date(report.created_at).toLocaleDateString()}</p>
+            <h1 className="ec-heading fw-bold mb-1" style={{ fontSize: '2rem' }}>Resume Evaluation</h1>
+            <p className="ec-mono" style={{ color: 'var(--ec-muted)', fontSize: '0.8rem' }}>
+              Analyzed on {new Date(report.created_at).toLocaleDateString()}
+            </p>
           </motion.div>
 
-          {/* Hero Split Card */}
-          <motion.div variants={itemVariants} className="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 d-flex flex-column flex-md-row" style={{ pageBreakInside: 'avoid' }}>
-            
+          {/* Hero Split Panel */}
+          <motion.div
+            variants={itemVariants}
+            className="ec-panel-box d-flex ec-hero-split mb-4 overflow-hidden"
+            style={{ '--ec-accent': theme.accent, pageBreakInside: 'avoid' }}
+          >
+            <span className="ec-corner tl" />
+            <span className="ec-corner br" />
+
             {/* Score Side */}
-            <div className="p-4 p-md-5 d-flex flex-column align-items-center justify-content-center text-center" style={{ background: theme.bg, flex: '0 0 300px' }}>
-              <h6 className="text-white text-uppercase tracking-wide fw-bold opacity-75 mb-4">ATS Match Score</h6>
+            <div
+              className="ec-hero-score p-4 p-md-5 d-flex flex-column align-items-center justify-content-center text-center"
+              style={{ flex: '0 0 300px', borderRight: '1px solid var(--ec-border)', background: 'var(--ec-panel)' }}
+            >
+              <span className="ec-eyebrow mb-4">ATS Match Score</span>
               <ScoreGauge score={report.ats_score} theme={theme} />
-              <div className="mt-4 bg-white bg-opacity-25 border border-white border-opacity-25 rounded-pill px-4 py-2 text-white fw-bold d-flex align-items-center gap-2 shadow-sm">
-                <span>{theme.icon}</span> {theme.label}
+              <div
+                className="ec-tier-badge mt-4"
+                style={{ background: theme.accentSoft, color: theme.accent, border: `1px solid ${theme.accent}55` }}
+              >
+                <span className="ec-tier-dot" style={{ background: theme.accent, boxShadow: `0 0 6px ${theme.accent}` }} />
+                {theme.tier} · {theme.label}
               </div>
             </div>
 
             {/* Summary Side */}
-            <div className="p-4 p-md-5 bg-white flex-grow-1">
-              <h5 className="fw-bolder text-dark mb-3 d-flex align-items-center gap-2">
-                <span className="bg-primary bg-opacity-10 text-primary rounded-circle p-2 d-flex"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M10.478 1.647a.5.5 0 1 0-.956-.294l-4 13a.5.5 0 0 0 .956.294l4-13zM4.854 4.146a.5.5 0 0 1 0 .708L1.707 8l3.147 3.146a.5.5 0 0 1-.708.708l-3.5-3.5a.5.5 0 0 1 0-.708l3.5-3.5a.5.5 0 0 1 .708 0zm6.292 0a.5.5 0 0 0 0 .708L14.293 8l-3.147 3.146a.5.5 0 0 0 .708.708l3.5-3.5a.5.5 0 0 0 0-.708l-3.5-3.5a.5.5 0 0 0-.708 0z"/></svg></span>
-                Executive Summary
-              </h5>
-              <p className="text-secondary lh-lg mb-4" style={{ fontSize: '0.95rem' }}>{report.summary}</p>
-              
-              <div className="pt-3 border-top border-light">
-                <p className="small text-uppercase text-secondary fw-bold mb-2">Document Analyzed</p>
-                <p className="fw-bold text-dark mb-0">{report.file_name}</p>
+            <div className="p-4 p-md-5 flex-grow-1">
+              <h5 className="ec-heading fw-bold mb-3" style={{ fontSize: '1.15rem' }}>Executive Summary</h5>
+              <p style={{ color: 'var(--ec-muted)', fontSize: '0.92rem', lineHeight: 1.7 }} className="mb-4">
+                {report.summary}
+              </p>
+
+              <div>
+                <div className="ec-stat-row">
+                  <span className="ec-eyebrow">Document</span>
+                  <span className="ec-mono fw-semibold text-end" style={{ fontSize: '0.82rem' }}>{report.file_name}</span>
+                </div>
                 {!isGeneral && (
-                  <div className="mt-3">
-                    <p className="small text-uppercase text-secondary fw-bold mb-2">Target Role</p>
-                    <p className="fw-bold text-primary mb-0">{report.target_role}</p>
+                  <div className="ec-stat-row">
+                    <span className="ec-eyebrow">Target Role</span>
+                    <span className="ec-mono fw-semibold text-end" style={{ fontSize: '0.82rem', color: theme.accent }}>{report.target_role}</span>
                   </div>
                 )}
               </div>
@@ -220,11 +410,11 @@ const Report = () => {
             // ================= GENERAL VIEW =================
             <>
               {/* Top Skills */}
-              <motion.div variants={itemVariants} className="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-4 bg-white" style={{ pageBreakInside: 'avoid' }}>
-                <h5 className="fw-bolder text-dark mb-3">Core Technical Skills Extracted</h5>
+              <motion.div variants={itemVariants} className="ec-panel-box p-4 p-md-5 mb-4" style={{ pageBreakInside: 'avoid' }}>
+                <h5 className="ec-heading fw-bold mb-3" style={{ fontSize: '1.05rem' }}>Core Technical Skills Extracted</h5>
                 <div className="d-flex flex-wrap gap-2">
                   {topSkills.map((skill, i) => (
-                    <span key={i} className="badge bg-light text-dark border border-secondary border-opacity-25 px-3 py-2 rounded-pill fw-semibold shadow-sm">{skill}</span>
+                    <span key={i} className="ec-tag">{skill}</span>
                   ))}
                 </div>
               </motion.div>
@@ -232,15 +422,13 @@ const Report = () => {
               <div className="row g-4">
                 {/* Strengths */}
                 <div className="col-md-6">
-                  <motion.div variants={itemVariants} className="card border-0 shadow-sm rounded-4 p-4 p-md-5 h-100 bg-white" style={{ pageBreakInside: 'avoid' }}>
-                    <h5 className="fw-bolder text-success mb-4 d-flex align-items-center gap-2">
-                       <span className="bg-success bg-opacity-10 rounded-circle p-1"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z"/></svg></span>
-                       Primary Strengths
-                    </h5>
-                    <ul className="list-unstyled mb-0 d-flex flex-column gap-3">
+                  <motion.div variants={itemVariants} className="ec-panel-box p-4 p-md-5 h-100" style={{ pageBreakInside: 'avoid' }}>
+                    <span className="ec-eyebrow d-block mb-3">Primary Strengths</span>
+                    <ul className="list-unstyled mb-0">
                       {strengths.map((str, i) => (
-                        <li key={i} className="d-flex gap-3 text-secondary fw-medium align-items-start">
-                          <span className="text-success mt-1">●</span> <span>{str}</span>
+                        <li key={i} className="ec-list-item">
+                          <span className="ec-dot" style={{ background: 'var(--ec-teal)' }} />
+                          <span style={{ fontSize: '0.88rem', color: 'var(--ec-text)' }}>{str}</span>
                         </li>
                       ))}
                     </ul>
@@ -249,15 +437,13 @@ const Report = () => {
 
                 {/* Weaknesses */}
                 <div className="col-md-6">
-                  <motion.div variants={itemVariants} className="card border-0 shadow-sm rounded-4 p-4 p-md-5 h-100 bg-white" style={{ pageBreakInside: 'avoid' }}>
-                    <h5 className="fw-bolder text-danger mb-4 d-flex align-items-center gap-2">
-                      <span className="bg-danger bg-opacity-10 rounded-circle p-1"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg></span>
-                      Areas for Improvement
-                    </h5>
-                    <ul className="list-unstyled mb-0 d-flex flex-column gap-3">
+                  <motion.div variants={itemVariants} className="ec-panel-box p-4 p-md-5 h-100" style={{ pageBreakInside: 'avoid' }}>
+                    <span className="ec-eyebrow d-block mb-3">Areas for Improvement</span>
+                    <ul className="list-unstyled mb-0">
                       {weaknesses.map((weak, i) => (
-                        <li key={i} className="d-flex gap-3 text-secondary fw-medium align-items-start">
-                          <span className="text-danger mt-1">●</span> <span>{weak}</span>
+                        <li key={i} className="ec-list-item">
+                          <span className="ec-dot" style={{ background: 'var(--ec-danger)' }} />
+                          <span style={{ fontSize: '0.88rem', color: 'var(--ec-text)' }}>{weak}</span>
                         </li>
                       ))}
                     </ul>
@@ -271,56 +457,50 @@ const Report = () => {
               <div className="row g-4 mb-4">
                 {/* Matched Skills */}
                 <div className="col-md-6">
-                  <motion.div variants={itemVariants} className="card border-0 shadow-sm rounded-4 p-4 p-md-5 h-100 bg-white" style={{ pageBreakInside: 'avoid' }}>
-                    <h5 className="fw-bolder text-success mb-3">✅ Matched Job Keywords</h5>
+                  <motion.div variants={itemVariants} className="ec-panel-box p-4 p-md-5 h-100" style={{ pageBreakInside: 'avoid' }}>
+                    <span className="ec-eyebrow d-block mb-3" style={{ color: 'var(--ec-teal)' }}>Matched Job Keywords</span>
                     <div className="d-flex flex-wrap gap-2">
                       {matchedSkills.length > 0 ? matchedSkills.map((s, i) => (
-                        <span key={i} className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill fw-semibold">{s}</span>
-                      )) : <span className="text-muted small">No critical keywords matched perfectly.</span>}
+                        <span key={i} className="ec-tag pos">{s}</span>
+                      )) : <span className="ec-mono" style={{ color: 'var(--ec-muted)', fontSize: '0.8rem' }}>No critical keywords matched perfectly.</span>}
                     </div>
                   </motion.div>
                 </div>
-                
+
                 {/* Missing Skills */}
                 <div className="col-md-6">
-                  <motion.div variants={itemVariants} className="card border-0 shadow-sm rounded-4 p-4 p-md-5 h-100 bg-white" style={{ pageBreakInside: 'avoid' }}>
-                    <h5 className="fw-bolder text-danger mb-3">⚠️ Missing Job Keywords</h5>
+                  <motion.div variants={itemVariants} className="ec-panel-box p-4 p-md-5 h-100" style={{ pageBreakInside: 'avoid' }}>
+                    <span className="ec-eyebrow d-block mb-3" style={{ color: 'var(--ec-danger)' }}>Missing Job Keywords</span>
                     <div className="d-flex flex-wrap gap-2">
                       {missingSkills.length > 0 ? missingSkills.map((s, i) => (
-                        <span key={i} className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill fw-semibold">{s}</span>
-                      )) : <span className="text-muted small">Great job! No major keywords missing.</span>}
+                        <span key={i} className="ec-tag neg">{s}</span>
+                      )) : <span className="ec-mono" style={{ color: 'var(--ec-muted)', fontSize: '0.8rem' }}>Great job! No major keywords missing.</span>}
                     </div>
                   </motion.div>
                 </div>
               </div>
 
               {/* Suggestions */}
-              <motion.div variants={itemVariants} className="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white" style={{ pageBreakInside: 'avoid' }}>
-                <h5 className="fw-bolder text-primary mb-4">💡 Actionable Recommendations</h5>
-                <ul className="list-unstyled mb-0 d-flex flex-column gap-3">
+              <motion.div variants={itemVariants} className="ec-panel-box p-4 p-md-5" style={{ pageBreakInside: 'avoid' }}>
+                <span className="ec-eyebrow d-block mb-3" style={{ color: 'var(--ec-amber)' }}>Actionable Recommendations</span>
+                <ul className="list-unstyled mb-0">
                   {suggestions.length > 0 ? suggestions.map((s, i) => (
-                    <li key={i} className="d-flex gap-3 text-secondary fw-medium align-items-start border-bottom border-light pb-3">
-                      <span className="text-primary mt-1 fs-5">👉</span> <span className="lh-lg">{s}</span>
+                    <li key={i} className="ec-list-item">
+                      <span className="ec-index">{String(i + 1).padStart(2, '0')}</span>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--ec-text)', lineHeight: 1.6 }}>{s}</span>
                     </li>
-                  )) : <li className="text-muted">Your resume looks perfectly optimized for this role!</li>}
+                  )) : <li className="ec-mono" style={{ color: 'var(--ec-muted)', fontSize: '0.85rem' }}>Your resume looks perfectly optimized for this role!</li>}
                 </ul>
               </motion.div>
             </>
           )}
 
-          <div className="text-center mt-5 opacity-50">
-             <p className="small fw-bold text-uppercase tracking-wide text-secondary">NovusCV • AI Analysis Engine</p>
+          <div className="text-center mt-5">
+            <p className="ec-eyebrow mb-0">NovusCV · AI Analysis Engine</p>
           </div>
-          
+
         </motion.div>
       </div>
-
-      <style>{`
-        .ats-gauge-wrap { position: relative; display: flex; align-items: center; justify-content: center; width: 164px; height: 164px;}
-        .ats-gauge-center { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 2;}
-        .ats-gauge-number { font-size: 2.8rem; font-weight: 800; line-height: 1; letter-spacing: -1px; }
-        .ats-gauge-pulse { position: absolute; inset: -12px; border-radius: 50%; background: rgba(255, 255, 255, 1); z-index: 0;}
-      `}</style>
     </div>
   );
 };
