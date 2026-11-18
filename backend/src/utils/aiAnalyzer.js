@@ -187,9 +187,13 @@ const envInt = (name, fallback) => {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
 
+// const CONFIG = Object.freeze({
+//   primaryModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+//   fallbackModel: process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash-lite',
 const CONFIG = Object.freeze({
-  primaryModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-  fallbackModel: process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash-lite',
+  primaryModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+  fallbackModel: process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite',
+
 
   // Free-tier quotas differ per project and change over time.
   // Keep these slightly BELOW your real limit (see AI Studio -> Rate limits).
