@@ -7,4 +7,4 @@ const router = express.Router();
 router.post('/save', protect, saveJobDescription);
 router.get('/my-jobs', protect, getMyJobDescriptions);
 
-export default router;
+export default router;  
