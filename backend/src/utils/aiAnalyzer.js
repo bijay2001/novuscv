@@ -140,6 +140,8 @@
 //     geminiLimiter.release();
 //   }
 // };
+
+
 import { GoogleGenAI, Type } from '@google/genai';
 import { createHash } from 'node:crypto';
 import dotenv from 'dotenv';
@@ -764,28 +766,41 @@ const runAnalysis = async ({ prompt, schema }) => {
 // 10. FRIENDLY FALLBACK RESULT (same shape as before + flags)
 // ============================================================================
 const failureResult = (err) => {
-  const message =
-    err?.code === 'BUSY'
-      ? 'Our analysis service is very busy right now. Please try again in a minute.'
-      : err?.code === 'BLOCKED'
-        ? 'This document could not be analysed. Please upload a standard resume.'
-        : 'We encountered a temporary issue analysing this document. Please try again.';
+  const status = err?.status ?? err?.statusCode;
+  let errorCode = err?.code ?? 'UNKNOWN';
+
+  // Extract the exact, raw error message from Google's servers
+  let rawGoogleError = "Unknown Error";
+  if (err?.message) {
+    rawGoogleError = err.message;
+  } else if (typeof err === 'object') {
+    rawGoogleError = JSON.stringify(err);
+  }
+
+  // This will force the Executive Summary on your frontend to print Google's exact rejection reason
+  let message = `CRITICAL API ERROR -> Status: ${status} | Details: ${rawGoogleError}`.substring(0, 300);
+
+  if (err?.code === 'BUSY') {
+    message = 'Our analysis service is very busy right now. Please try again in a minute.';
+  } else if (err?.code === 'BLOCKED') {
+    message = 'This document could not be analysed due to safety filters. Please upload a standard resume.';
+  }
+
   return {
     atsScore: 0,
-    summary: message,
+    summary: message, // <--- Google's exact error will now appear on your UI
     topSkills: [],
     strengths: [],
     weaknesses: [],
     matchedSkills: [],
     missingSkills: [],
-    suggestions: ['Ensure your document text is readable and try uploading again.'],
+    suggestions: ['Read the Executive Summary above for the exact API error.'],
     scoreBreakdown: { keywordMatch: 0, impactMetrics: 0, structureClarity: 0, experienceRelevance: 0 },
-    analysisFailed: true,          // lets your UI show an error state instead of a "0 score"
-    errorCode: err?.code ?? 'UNKNOWN',
+    analysisFailed: true,
+    errorCode: errorCode,
     meta: { model: null, cached: false, promptVersion: PROMPT_VERSION },
   };
 };
-
 // ============================================================================
 // 11. MAIN FUNCTION
 // ============================================================================
