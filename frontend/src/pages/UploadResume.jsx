@@ -1,487 +1,170 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import api from '../services/api';
 import { showAlert } from '../utils/alerts';
-import { motion, AnimatePresence } from 'framer-motion';
+
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const UploadResume = () => {
-  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'targeted'
   const [file, setFile] = useState(null);
   const [jobRole, setJobRole] = useState('');
-  const [jobDescription, setJobDescription] = useState('');
-
-  const [loading, setLoading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-
+  const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef(null);
   const navigate = useNavigate();
 
-  // --- Reusable File Validation ---
-  const processFile = (selectedFile) => {
+  const validateAndSetFile = (selectedFile) => {
     if (!selectedFile) return;
 
-    const validTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
-    if (!validTypes.includes(selectedFile.type)) {
-      showAlert.error('Invalid File', 'Please upload only PDF or DOCX formats.');
-      return false;
+    const ext = selectedFile.name.split('.').pop().toLowerCase();
+    if (!ALLOWED_TYPES.includes(selectedFile.type) && !['pdf', 'docx'].includes(ext)) {
+      showAlert.error('Invalid File Type', 'Invalid format. Only PDF and DOCX files are allowed.');
+      return;
     }
 
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (selectedFile.size > maxSize) {
-      showAlert.error('File Too Large', 'Please keep your resume under 5MB.');
-      return false;
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      showAlert.error('File Too Large', 'File is too large. Maximum size is 5MB.');
+      return;
     }
 
     setFile(selectedFile);
-    return true;
-  };
-
-  // --- Event Handlers ---
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (!processFile(selectedFile)) {
-      e.target.value = null;
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
-    setIsDragging(false);
-    const droppedFile = e.dataTransfer.files[0];
-    processFile(droppedFile);
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      validateAndSetFile(e.dataTransfer.files[0]);
+    }
   };
 
-  const handleUpload = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) {
-      return showAlert.error('Missing File', 'Please select a resume to upload.');
+      showAlert.error('Missing File', 'Please upload a PDF or DOCX file.');
+      return;
     }
 
-    if (activeTab === 'targeted' && !jobDescription.trim()) {
-      return showAlert.error('Missing JD', 'Please paste a Job Description for Targeted Analysis.');
-    }
-
-    setLoading(true);
-
-    const formData = new FormData();
-    formData.append('resume', file);
-
-    // Logic: If general, send default role. If targeted, send Role + JD text.
-    if (activeTab === 'targeted') {
-      formData.append('jobRole', jobRole || 'Targeted Role');
-      formData.append('jdText', jobDescription);
-    } else {
-      formData.append('jobRole', 'General Application');
-    }
-
+    setUploading(true);
     try {
-      const response = await api.post('/resume/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const formData = new FormData();
+      formData.append('resume', file);
+      formData.append('jobRole', jobRole.trim() || 'General Application');
 
-      // Turn OFF loading BEFORE showing the alert so the UI doesn't hang
-      setLoading(false);
+      const { data } = await api.post('/resume/upload', formData);
 
-      await showAlert.success('Successfully Parsed!', 'Click OK to view your score and report.');
-      navigate(`/report/${response.data.data.resumeId}`);
+      const resumeId = data?.data?.resumeId;
 
+      await showAlert.success(
+        'Analysis Complete!',
+        data?.message || 'Your resume has been evaluated and saved.'
+      );
+
+      if (resumeId) {
+        navigate(`/report/${resumeId}`);
+      } else {
+        navigate('/');
+      }
     } catch (err) {
-      setLoading(false); // Turn OFF loading on error too
-      showAlert.error('Upload Failed', err.response?.data?.message || 'Failed to process resume.');
+      console.error('Upload error:', err);
+      showAlert.error(
+        'Analysis Failed',
+        err.response?.data?.message || 'Server error during document processing.'
+      );
+    } finally {
+      setUploading(false);
     }
   };
-
-  // --- Animation Variants ---
-  const pageVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, staggerChildren: 0.1 } }
-  };
-
-  const childVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-  };
-
-  const consoleStyles = `
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
-
-    .ec-root {
-      --ec-bg: #0A0D12;
-      --ec-panel: #12161C;
-      --ec-panel-alt: #161B22;
-      --ec-surface: #1A2029;
-      --ec-border: #232A35;
-      --ec-border-soft: #1D232D;
-      --ec-amber: #F0A22E;
-      --ec-amber-dim: rgba(240, 162, 46, 0.14);
-      --ec-teal: #2DD4BF;
-      --ec-teal-dim: rgba(45, 212, 191, 0.14);
-      --ec-text: #E7E9EC;
-      --ec-muted: #7C8592;
-      --ec-muted-2: #4B5563;
-      background: var(--ec-bg);
-      min-height: 100vh;
-      font-family: 'Inter', sans-serif;
-      color: var(--ec-text);
-    }
-    .ec-heading { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.02em; }
-    .ec-mono { font-family: 'IBM Plex Mono', SFMono-Regular, monospace; }
-
-    .ec-grid-bg {
-      background-image:
-        linear-gradient(rgba(240, 162, 46, 0.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(240, 162, 46, 0.045) 1px, transparent 1px);
-      background-size: 34px 34px;
-      background-position: -1px -1px;
-    }
-
-    .ec-eyebrow {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.7rem;
-      letter-spacing: 0.14em;
-      color: var(--ec-muted);
-      font-weight: 500;
-      text-transform: uppercase;
-    }
-
-    .ec-icon-badge {
-      width: 56px; height: 56px; border-radius: 12px;
-      background: var(--ec-amber-dim);
-      border: 1px solid rgba(240, 162, 46, 0.3);
-      color: var(--ec-amber);
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    .ec-tabs {
-      display: flex;
-      background: var(--ec-panel-alt);
-      border: 1px solid var(--ec-border);
-      border-radius: 10px;
-      padding: 4px;
-    }
-    .ec-tab {
-      flex: 1;
-      border: none;
-      background: transparent;
-      padding: 0.65rem 0.5rem;
-      border-radius: 7px;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.75rem;
-      letter-spacing: 0.06em;
-      font-weight: 600;
-      text-transform: uppercase;
-      color: var(--ec-muted);
-      transition: background 0.2s ease, color 0.2s ease;
-      cursor: pointer;
-    }
-    .ec-tab.active { background: var(--ec-amber); color: #14110A; }
-
-    .ec-card {
-      background: var(--ec-panel-alt);
-      border: 1px solid var(--ec-border);
-      border-radius: 12px;
-      position: relative;
-    }
-    .ec-corner { position: absolute; width: 14px; height: 14px; opacity: 0.75; }
-    .ec-corner.tl { top: -1px; left: -1px; border-top: 2px solid var(--ec-amber); border-left: 2px solid var(--ec-amber); }
-    .ec-corner.br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--ec-amber); border-right: 2px solid var(--ec-amber); }
-
-    .ec-field-label {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.68rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--ec-muted);
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-      display: block;
-    }
-
-    .ec-input, .ec-textarea {
-      width: 100%;
-      background: var(--ec-surface);
-      border: 1px solid var(--ec-border);
-      border-radius: 8px;
-      padding: 0.8rem 1rem;
-      font-size: 0.9rem;
-      color: var(--ec-text);
-      font-family: 'Inter', sans-serif;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-    .ec-input::placeholder, .ec-textarea::placeholder { color: var(--ec-muted-2); }
-    .ec-input:focus, .ec-textarea:focus {
-      outline: none;
-      border-color: var(--ec-teal);
-      box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.14);
-    }
-
-    .ec-dropzone {
-      border: 2px dashed var(--ec-border);
-      border-radius: 12px;
-      background: var(--ec-surface);
-      min-height: 220px;
-      position: relative;
-      cursor: pointer;
-    }
-    .ec-drop-icon {
-      width: 64px; height: 64px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--ec-panel-alt);
-      color: var(--ec-muted);
-      border: 1px solid var(--ec-border);
-    }
-    .ec-drop-icon.active { background: var(--ec-teal-dim); color: var(--ec-teal); border-color: rgba(45,212,191,0.3); }
-
-    .ec-file-pill {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--ec-teal);
-      background: var(--ec-teal-dim);
-      border: 1px solid rgba(45, 212, 191, 0.3);
-      padding: 0.35rem 0.9rem;
-      border-radius: 999px;
-    }
-
-    .ec-submit {
-      width: 100%;
-      background: var(--ec-amber);
-      color: #14110A;
-      border: none;
-      border-radius: 10px;
-      padding: 0.95rem 1rem;
-      font-family: 'IBM Plex Mono', monospace;
-      font-weight: 600;
-      font-size: 0.85rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      position: relative;
-      z-index: 20;
-    }
-    .ec-submit:disabled { background: #3A3F47; color: var(--ec-muted); cursor: not-allowed; }
-
-    .ec-overlay {
-      position: fixed; inset: 0; z-index: 9999;
-      background: rgba(10, 13, 18, 0.88);
-      backdrop-filter: blur(6px);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-    .ec-spinner-lg {
-      width: 46px; height: 46px; border-radius: 50%;
-      border: 3px solid rgba(240,162,46,0.2); border-top-color: var(--ec-amber);
-      animation: ec-spin 0.75s linear infinite;
-    }
-    @keyframes ec-spin { to { transform: rotate(360deg); } }
-
-    @media (prefers-reduced-motion: reduce) {
-      .ec-spinner-lg { animation: none; }
-    }
-  `;
 
   return (
-    <div className="ec-root ec-grid-bg d-flex flex-column pt-4 position-relative">
-      <style>{consoleStyles}</style>
+    <div className="main-container" style={{ maxWidth: '760px' }}>
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <span className="ec-eyebrow" style={{ marginBottom: '0.4rem' }}>// ATS Ingestion Module</span>
+        <h1 className="ec-heading" style={{ fontSize: 'clamp(1.75rem, 3vw, 2.25rem)', fontWeight: 700, marginBottom: '0.4rem' }}>
+          Scan & Optimize Resume
+        </h1>
+        <p style={{ color: 'var(--ec-muted)', fontSize: '0.92rem', marginBottom: '2rem' }}>
+          Upload your PDF or DOCX resume and specify your target role or job description for instant AI ATS scoring.
+        </p>
 
-      {/* Full Screen Loading Overlay */}
-      <AnimatePresence>
-        {loading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="ec-overlay"
+        <form onSubmit={handleSubmit} className="ec-card" style={{ padding: '2rem' }}>
+          <span className="ec-corner tl" />
+          <span className="ec-corner br" />
+
+          <div
+            className={`ec-dropzone ${dragActive ? 'active' : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragActive(true);
+            }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={handleDrop}
+            onClick={() => inputRef.current?.click()}
           >
-            <div className="ec-spinner-lg mb-4" />
-            <h4 className="ec-heading fw-bold mb-2" style={{ color: '#E7E9EC' }}>Analyzing your resume</h4>
-            <p className="ec-eyebrow mb-0">This may take a few seconds</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf,.docx"
+              style={{ display: 'none' }}
+              onChange={(e) => validateAndSetFile(e.target.files?.[0])}
+            />
 
-      {/* Main Content */}
-      <motion.div
-        className="container px-3 px-md-4 d-flex flex-column align-items-center justify-content-center flex-grow-1 pb-5"
-        variants={pageVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <div className="w-100" style={{ maxWidth: '580px' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.6rem' }}>📄</div>
+            {file ? (
+              <div>
+                <h3 className="ec-heading" style={{ fontSize: '1.1rem', color: 'var(--ec-teal)' }}>
+                  {file.name}
+                </h3>
+                <p className="ec-mono" style={{ fontSize: '0.78rem', color: 'var(--ec-muted)', marginTop: '0.3rem' }}>
+                  {(file.size / 1024 / 1024).toFixed(2)} MB · VERIFIED FOR AI PARSING
+                </p>
+              </div>
+            ) : (
+              <div>
+                <h3 className="ec-heading" style={{ fontSize: '1.08rem', marginBottom: '0.3rem' }}>
+                  Drag & drop your resume here, or click to browse
+                </h3>
+                <p className="ec-mono" style={{ fontSize: '0.76rem', color: 'var(--ec-muted)' }}>
+                  SUPPORTS .PDF OR .DOCX (MAX 5MB · 5 SCANS/HOUR)
+                </p>
+              </div>
+            )}
+          </div>
 
-          {/* Header Area */}
-          <motion.div className="text-center mb-4" variants={childVariants}>
-            <div className="ec-icon-badge d-inline-flex mb-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1M6.354 9.854a.5.5 0 0 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 8.707V12.5a.5.5 0 0 1-1 0V8.707z" />
-              </svg>
-            </div>
-            <span className="ec-eyebrow d-block mb-2">// Resume Intake</span>
-            <h2 className="ec-heading fw-bold mb-1" style={{ fontSize: '1.9rem' }}>Upload Document</h2>
-            <p style={{ color: 'var(--ec-muted)', fontSize: '0.9rem' }} className="mb-0">
-              Extract powerful ATS insights instantly.
-            </p>
-          </motion.div>
+          <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+            <label className="ec-field-label" htmlFor="jobRole">
+              Target Job Role or Job Description (Leave blank for General Application Scan)
+            </label>
+            <textarea
+              id="jobRole"
+              rows={4}
+              className="ec-textarea"
+              placeholder="e.g., Full Stack React & Node.js Developer — or paste the target job requirements here..."
+              maxLength={3000}
+              value={jobRole}
+              onChange={(e) => setJobRole(e.target.value)}
+              disabled={uploading}
+              style={{ resize: 'vertical' }}
+            />
+          </div>
 
-          {/* Tab Switcher */}
-          <motion.div variants={childVariants} className="ec-tabs mb-4">
-            <button
-              type="button"
-              onClick={() => setActiveTab('general')}
-              className={`ec-tab ${activeTab === 'general' ? 'active' : ''}`}
-            >
-              General Scan
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('targeted')}
-              className={`ec-tab ${activeTab === 'targeted' ? 'active' : ''}`}
-            >
-              Targeted Match
-            </button>
-          </motion.div>
-
-          {/* Interactive Card */}
-          <motion.div variants={childVariants} className="ec-card mb-4">
-            <span className="ec-corner tl" />
-            <span className="ec-corner br" />
-            <div className="p-4 p-sm-5 position-relative">
-
-              <form onSubmit={handleUpload}>
-
-                {/* Conditional Inputs based on Tab */}
-                <AnimatePresence mode="wait">
-                  {activeTab === 'targeted' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mb-4"
-                    >
-                      <label className="ec-field-label">Target Job Title</label>
-                      <input
-                        type="text"
-                        className="ec-input mb-3"
-                        placeholder="e.g., Senior Frontend Developer"
-                        value={jobRole}
-                        onChange={(e) => setJobRole(e.target.value)}
-                        disabled={loading}
-                      />
-
-                      <label className="ec-field-label">
-                        Job Description <span style={{ color: '#EF4444' }}>*</span>
-                      </label>
-                      <textarea
-                        className="ec-textarea"
-                        rows="4"
-                        placeholder="Paste the full job description here..."
-                        value={jobDescription}
-                        onChange={(e) => setJobDescription(e.target.value)}
-                        disabled={loading}
-                        style={{ resize: 'none' }}
-                      ></textarea>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Advanced Dropzone */}
-                <label className="ec-field-label text-center w-100">Upload Resume</label>
-                <motion.div
-                  animate={{
-                    borderColor: isDragging || file ? '#2DD4BF' : '#232A35',
-                  }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  className="ec-dropzone p-4 mb-4 d-flex flex-column align-items-center justify-content-center text-center"
-                  style={{
-                    background: isDragging ? 'rgba(45, 212, 191, 0.04)' : (file ? 'rgba(45, 212, 191, 0.03)' : undefined),
-                  }}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-
-                  <AnimatePresence mode="wait">
-                    {file ? (
-                      <motion.div
-                        key="file-selected"
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                        className="d-flex flex-column align-items-center"
-                      >
-                        <div className="ec-drop-icon active mb-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z" />
-                            <path d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
-                          </svg>
-                        </div>
-                        <h5 className="ec-heading fw-bold mb-1 text-truncate px-3" style={{ maxWidth: '280px', fontSize: '1.02rem', color: 'var(--ec-text)' }}>
-                          {file.name}
-                        </h5>
-                        <p className="ec-file-pill mt-2 mb-0">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB · Ready
-                        </p>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="no-file"
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                        className="d-flex flex-column align-items-center pe-none"
-                      >
-                        <div className="ec-drop-icon mb-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" viewBox="0 0 16 16">
-                            <path fillRule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708z" />
-                            <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383m.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z" />
-                          </svg>
-                        </div>
-                        <h5 className="ec-heading fw-bold mb-1" style={{ fontSize: '1.02rem', color: 'var(--ec-text)' }}>
-                          Drag &amp; drop or <span style={{ color: 'var(--ec-teal)', textDecoration: 'underline' }}>browse</span>
-                        </h5>
-                        <p className="ec-eyebrow mb-0 mt-1" style={{ textTransform: 'none', letterSpacing: 0 }}>
-                          Supports PDF and DOCX (Max 5MB)
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Hidden Input Layer */}
-                  <input
-                    type="file"
-                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onChange={handleFileChange}
-                    className="position-absolute top-0 start-0 w-100 h-100 opacity-0"
-                    style={{ cursor: 'pointer', zIndex: 10 }}
-                    disabled={loading}
-                  />
-                </motion.div>
-
-                {/* Animated Submit Button */}
-                <motion.button
-                  type="submit"
-                  disabled={loading || !file}
-                  whileHover={!loading && file ? { boxShadow: '0 10px 24px -8px rgba(240, 162, 46, 0.5)' } : {}}
-                  whileTap={!loading && file ? { scale: 0.98 } : {}}
-                  className="ec-submit"
-                >
-                  Analyze with AI
-                </motion.button>
-
-              </form>
-            </div>
-          </motion.div>
-
-        </div>
+          <button type="submit" className="ec-submit" disabled={uploading}>
+            {uploading ? (
+              <>
+                <span className="ec-spinner" />
+                <span>Executing AI ATS Scan...</span>
+              </>
+            ) : (
+              'Run ATS Diagnostic'
+            )}
+          </button>
+        </form>
       </motion.div>
     </div>
   );
